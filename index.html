@@ -9,10 +9,10 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
         
         :root {
-            --card-size: clamp(3.5rem, 18vw, 5.5rem);
+            --card-size: clamp(3.2rem, 16vw, 5rem);
             --neon-purple: #a855f7;
             --neon-blue: #3b82f6;
-            --bg-dark: #0f172a;
+            --neon-pink: #ec4899;
         }
 
         body {
@@ -22,10 +22,13 @@
             touch-action: manipulation;
             overscroll-behavior: none;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .glass-panel {
-            background: rgba(30, 41, 59, 0.75);
+            background: rgba(30, 41, 59, 0.8);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -66,7 +69,6 @@
             z-index: 10;
         }
 
-        .kanji-card:active { cursor: grabbing; }
         .kanji-card.dragging { opacity: 0.5; transform: scale(0.9); }
 
         .correct-card { 
@@ -100,63 +102,95 @@
 
         .answer-hint {
             position: absolute;
-            bottom: -1.5rem;
-            font-size: 0.7rem;
-            font-weight: bold;
+            bottom: -1.8rem;
+            font-size: 0.75rem;
+            font-weight: 900;
             color: #10b981;
             white-space: nowrap;
         }
+
+        /* タイムリミットバー */
+        #timer-bar-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            height: 6px;
+            overflow: hidden;
+        }
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-pink));
+            box-shadow: 0 0 10px var(--neon-pink);
+            transition: width 0.1s linear;
+        }
+
+        /* スライダーのカスタマイズ */
+        input[type=range] {
+            accent-color: var(--neon-purple);
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+<body class="p-2 sm:p-4">
 
     <div id="app" class="w-full max-w-md md:max-w-2xl lg:max-w-3xl glass-panel rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-white/10">
         
         <!-- ヘッダー -->
         <div class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-6 text-white text-center relative">
             <h1 class="text-2xl sm:text-3xl font-black italic tracking-tighter">四字熟語 BATTLE MASTER</h1>
-            <p id="level-title" class="text-indigo-200 text-xs sm:text-sm mt-1 font-bold uppercase tracking-widest">ミッションを開始せよ</p>
+            <p id="level-title" class="text-indigo-200 text-xs sm:text-sm mt-1 font-bold uppercase tracking-widest">タイムを競い、マスターを目指せ</p>
         </div>
 
-        <!-- プログレスバー -->
-        <div id="progress-container" class="hidden w-full bg-white/5 h-2">
-            <div id="progress-bar" class="bg-gradient-to-r from-purple-400 to-pink-500 h-full transition-all duration-500" style="width: 0%"></div>
+        <!-- タイムバー -->
+        <div id="timer-bar-container" class="hidden">
+            <div id="timer-bar"></div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             
             <!-- スタート画面 -->
-            <div id="start-view" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2 text-center mb-2">
-                    <p class="text-indigo-300 font-bold text-sm">全150問からランダムに5問が出題されるぞ！</p>
+            <div id="start-view" class="flex flex-col gap-6">
+                <!-- 制限時間設定エリア -->
+                <div class="bg-black/20 p-6 rounded-3xl border border-white/5 shadow-inner">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-black text-indigo-300 uppercase tracking-widest text-sm">Timer Settings</h3>
+                        <span id="time-val-display" class="font-black text-xl text-white italic">15秒</span>
+                    </div>
+                    <input type="range" id="time-slider" min="5" max="65" step="5" value="15" class="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer mb-2">
+                    <div class="flex justify-between text-[10px] font-bold text-indigo-400">
+                        <span>FAST (5s)</span>
+                        <span>OFF (No Limit)</span>
+                    </div>
                 </div>
-                <button onclick="initGame('low')" class="btn-push bg-emerald-500 hover:bg-emerald-400 text-white font-black py-5 rounded-2xl shadow-lg transition text-lg">
-                    初級 (小学生)
-                </button>
-                <button onclick="initGame('mid')" class="btn-push bg-sky-500 hover:bg-sky-400 text-white font-black py-5 rounded-2xl shadow-lg transition text-lg">
-                    中級 (高学年)
-                </button>
-                <button onclick="initGame('high')" class="btn-push bg-indigo-500 hover:bg-indigo-400 text-white font-black py-5 rounded-2xl shadow-lg transition text-lg">
-                    上級 (中学生)
-                </button>
-                <button onclick="initGame('hard')" class="btn-push bg-purple-600 hover:bg-purple-500 text-white font-black py-5 rounded-2xl shadow-lg transition text-lg">
-                    超級 (高校生)
-                </button>
-                <button onclick="initGame('legend')" class="md:col-span-2 btn-push bg-slate-800 hover:bg-slate-700 text-white font-black py-5 rounded-2xl shadow-lg transition text-lg border-slate-900">
-                    伝説 (大人)
-                </button>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="initGame('low')" class="btn-push bg-emerald-500 hover:bg-emerald-400 text-white font-black py-4 rounded-2xl shadow-lg transition text-lg">
+                        初級 (小学生)
+                    </button>
+                    <button onclick="initGame('mid')" class="btn-push bg-sky-500 hover:bg-sky-400 text-white font-black py-4 rounded-2xl shadow-lg transition text-lg">
+                        中級 (高学年)
+                    </button>
+                    <button onclick="initGame('high')" class="btn-push bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-lg transition text-lg">
+                        上級 (中学生)
+                    </button>
+                    <button onclick="initGame('hard')" class="btn-push bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-2xl shadow-lg transition text-lg">
+                        超級 (高校生)
+                    </button>
+                    <button onclick="initGame('legend')" class="md:col-span-2 btn-push bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-2xl shadow-lg transition text-lg border-slate-900">
+                        伝説 (大人向け)
+                    </button>
+                </div>
             </div>
 
             <!-- ゲーム画面 -->
             <div id="game-view" class="hidden">
                 <div class="text-center">
-                    <div class="flex justify-between items-center mb-4">
+                    <div class="flex justify-between items-center mb-6">
                         <span id="q-count" class="text-xs font-black text-purple-400 bg-purple-900/50 px-3 py-1 rounded-full border border-purple-500/30 tracking-widest">STAGE 0/5</span>
-                        <span class="text-xs font-black text-blue-400 tracking-widest uppercase">Points: <span id="current-score">0</span></span>
+                        <span class="text-xs font-black text-blue-400 tracking-widest uppercase">Score: <span id="current-score">0</span></span>
                     </div>
                     
-                    <div class="p-5 sm:p-8 bg-black/30 rounded-3xl border border-white/5 shadow-inner mb-10 min-h-[6rem] flex items-center justify-center">
-                        <p id="q-meaning" class="text-white text-base sm:text-xl font-bold leading-relaxed italic"></p>
+                    <div class="p-5 sm:p-8 bg-black/40 rounded-3xl border border-white/5 shadow-inner mb-8 min-h-[6rem] flex items-center justify-center relative overflow-hidden">
+                        <p id="q-meaning" class="text-white text-base sm:text-xl font-bold leading-relaxed italic z-10"></p>
                     </div>
 
                     <div id="drop-area" class="flex justify-center gap-2 sm:gap-4 mb-12">
@@ -167,12 +201,12 @@
                     </div>
                 </div>
 
-                <div id="source-area" class="p-4 bg-black/20 rounded-3xl flex flex-wrap justify-center gap-3 min-h-[9rem] items-center border border-white/5 shadow-inner mb-8">
+                <div id="source-area" class="p-4 bg-black/20 rounded-3xl flex flex-wrap justify-center gap-2 sm:gap-3 min-h-[9rem] items-center border border-white/5 shadow-inner mb-8">
                 </div>
 
                 <div class="flex flex-col gap-4">
                     <button id="check-btn" onclick="processAnswer()" class="btn-push w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl transition disabled:opacity-30 text-xl uppercase tracking-widest">
-                        答えを判定する
+                        答え合わせ
                     </button>
                     <div id="feedback" class="hidden text-center py-2 font-black text-2xl italic tracking-tighter"></div>
                     <button id="next-btn" onclick="nextQuestion()" class="hidden btn-push w-full bg-white text-indigo-900 font-black py-4 rounded-2xl shadow-xl transition text-xl uppercase tracking-widest">
@@ -184,14 +218,14 @@
             <!-- リザルト画面 -->
             <div id="result-view" class="hidden text-center py-8">
                 <div class="text-7xl mb-6 animate-bounce">🏆</div>
-                <h2 class="text-3xl font-black text-white mb-2 uppercase tracking-tighter">Mission Clear</h2>
+                <h2 class="text-3xl font-black text-white mb-2 uppercase tracking-tighter">Battle Completed</h2>
                 <div class="bg-white/5 p-8 rounded-3xl border border-white/10 mb-8 inline-block min-w-[240px]">
-                    <p class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Total Score</p>
+                    <p class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Final Score</p>
                     <div class="text-6xl font-black text-white">
                         <span id="final-score">0</span><span class="text-2xl text-indigo-400 mx-1">/</span>5
                     </div>
                 </div>
-                <button onclick="location.reload()" class="btn-push w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-black py-5 rounded-2xl shadow-xl transition text-xl uppercase tracking-widest">
+                <button onclick="resetToTitle()" class="btn-push w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-black py-5 rounded-2xl shadow-xl transition text-xl uppercase tracking-widest">
                     タイトルへ戻る
                 </button>
             </div>
@@ -199,7 +233,7 @@
     </div>
 
     <script>
-        // 大量の四字熟語データ（各レベル30問以上）
+        // 問題プール
         const masterIdioms = {
             low: [
                 { i: "一石二鳥", m: "一つの行動で二つの利益を得ること。", d: ["三", "石", "魚"] },
@@ -210,157 +244,144 @@
                 { i: "春夏秋冬", m: "一年の四季のうつりかわり。", d: ["山", "川", "海"] },
                 { i: "一生懸命", m: "命をかけるほど全力で取り組むこと。", d: ["心", "身", "気"] },
                 { i: "一長一短", m: "良いところもあるが悪いところもあること。", d: ["二", "三", "長"] },
-                { i: "二者択一", m: "二つのうちどちらか一つを選ぶこと。", d: ["三", "選", "決"] },
-                { i: "自画自賛", m: "自分で自分をほめること。", d: ["算", "三", "画"] },
-                { i: "一喜一憂", m: "状況が変わるたびに喜んだり心配したりすること。", d: ["二", "楽", "悲"] },
-                { i: "単刀直入", m: "いきなり本題に入ること。", d: ["剣", "切", "話"] },
-                { i: "一意専心", m: "一つのことに心を集中させること。", d: ["全", "神", "心"] },
-                { i: "四面楚歌", m: "周りがすべて敵で助けがないこと。", d: ["三", "五", "敵"] },
                 { i: "再三再四", m: "何度も何度も繰り返すこと。", d: ["一", "二", "度"] },
-                { i: "一挙両得", m: "一つの行動で二つの利益を得ること。", d: ["獲", "利", "二"] },
-                { i: "自由自在", m: "自分の思う通りに振る舞うこと。", d: ["行", "動", "由"] },
                 { i: "一心不乱", m: "心を一つのことに集中して乱れないこと。", d: ["神", "信", "分"] },
-                { i: "意気投合", m: "互いの気持ちがぴったり合うこと。", d: ["生", "道", "心"] },
                 { i: "日進月歩", m: "絶え間なく急速に進歩すること。", d: ["年", "天", "時"] },
-                { i: "自業自得", m: "自分のしたことの報いを自分で受けること。", d: ["分", "報", "身"] },
-                { i: "千差万別", m: "物事の種類がさまざまに違うこと。", d: ["百", "億", "色"] },
                 { i: "本末転倒", m: "大事なこととそうでないことを取り違えること。", d: ["逆", "正", "頭"] },
-                { i: "三位一体", m: "三つのものが一つにまとまること。", d: ["四", "合", "結"] },
-                { i: "半信半疑", m: "半分は信じ、半分は疑っていること。", d: ["全", "真", "偽"] },
-                { i: "取捨選択", m: "良いものを取り、悪いものを捨てること。", d: ["採", "決", "要"] },
-                { i: "朝令暮改", m: "命令がすぐに変わってあてにならないこと。", d: ["夜", "昼", "変"] },
-                { i: "問答無用", m: "話し合っても無駄であること。", d: ["答", "用", "不"] },
-                { i: "悪戦苦闘", m: "困難な状況で死に物狂いで努力すること。", d: ["勝", "戦", "強"] },
-                { i: "公平無私", m: "自分の感情を入れず、平等に扱うこと。", d: ["正", "直", "直"] }
+                { i: "自由自在", m: "自分の思う通りに振る舞うこと。", d: ["行", "動", "由"] },
+                { i: "一喜一憂", m: "状況が変わるたびに喜んだり心配したりすること。", d: ["二", "楽", "悲"] }
             ],
             mid: [
                 { i: "以心伝心", m: "言葉を使わなくても気持ちが通じ合うこと。", d: ["真", "信", "新"] },
-                { i: "弱肉強食", m: "強い者が弱い者を犠牲にして栄えること。", d: ["牛", "魚", "身"] },
+                { i: "弱肉強食", m: "強い者が弱い者を食べて栄えること。", d: ["牛", "魚", "身"] },
                 { i: "温故知新", m: "古いことを学び、新しい知識を得ること。", d: ["地", "智", "池"] },
-                { i: "油断大敵", m: "注意を怠れば大きな失敗をすること。", d: ["強", "敵", "火"] },
-                { i: "喜怒哀楽", m: "人間が持つさまざまな感情のこと。", d: ["愛", "驚", "情"] },
-                { i: "五里霧中", m: "様子が分からず方針が立たないこと。", d: ["山", "雲", "空"] },
-                { i: "我田引水", m: "自分に都合が良いように物事を進めること。", d: ["自", "画", "水"] },
-                { i: "孤立無援", m: "ひとりぼっちで助けがないこと。", d: ["独", "立", "助"] },
-                { i: "絶体絶命", m: "追い詰められて逃げ場がない状態。", d: ["対", "命", "明"] },
-                { i: "試行錯誤", m: "失敗を繰り返しながら正解に近づくこと。", d: ["校", "策", "後"] },
-                { i: "言語道断", m: "言葉で言い表せないほどひどいこと。", d: ["言", "道", "理"] },
-                { i: "支離滅裂", m: "バラバラで筋道が通っていないこと。", d: ["私", "乱", "壊"] },
-                { i: "臨機応変", m: "状況に応じて適切な対応をすること。", d: ["常", "心", "対"] },
-                { i: "付和雷同", m: "自分の考えがなく他人の意見にすぐ賛成すること。", d: ["同", "風", "雷"] },
-                { i: "切磋琢磨", m: "仲間同士で励まし合い向上すること。", d: ["研", "究", "練"] },
-                { i: "優柔不断", m: "ぐずぐずして決断が遅いこと。", d: ["弱", "迷", "疑"] },
-                { i: "適材適所", m: "才能に合った役割を与えること。", d: ["人", "材", "場"] },
-                { i: "無我夢中", m: "心を奪われ、自分を忘れて没頭すること。", d: ["心", "中", "全"] },
-                { i: "疑心暗鬼", m: "疑うと何でもないことまで恐ろしくなること。", d: ["信", "真", "鬼"] },
-                { i: "呉越同舟", m: "敵同士が同じ場所で助け合うこと。", d: ["船", "友", "海"] },
-                { i: "危機一髪", m: "非常に危険で、余裕がない状態。", d: ["機", "髪", "絶"] },
-                { i: "用意周到", m: "準備が隅々まで行き届いていること。", d: ["全", "備", "意"] },
-                { i: "紆余曲折", m: "事情が複雑で、すんなり運ばないこと。", d: ["右", "左", "直"] },
-                { i: "清廉潔白", m: "心が清らかで、少しの不正もないこと。", d: ["白", "正", "直"] },
-                { i: "大器晩成", m: "大物は遅れて成功するということ。", d: ["器", "成", "遅"] },
-                { i: "才色兼備", m: "すぐれた才能と美しい顔立ちの両方を持つこと。", d: ["美", "女", "兼"] },
-                { i: "一致団結", m: "多くの人が心を一つにまとめること。", d: ["合", "結", "同"] },
-                { i: "諸行無常", m: "この世のすべては常に変わり続けること。", d: ["定", "性", "心"] },
+                { i: "絶体絶命", m: "追い詰められて逃げ場がない、大ピンチの状態。", d: ["対", "命", "明"] },
+                { i: "自問自答", m: "自分で自分に問いかけ、自分で答えを出すこと。", d: ["問", "答", "語"] },
+                { i: "危機一髪", m: "非常に危険な、きわどい瀬戸際のこと。", d: ["一", "機", "発"] },
+                { i: "取捨選択", m: "良いものを取り、悪いものを捨てること。", d: ["選", "採", "決"] },
                 { i: "針小棒大", m: "物事を大げさに言うこと。", d: ["大", "小", "話"] },
-                { i: "一網打尽", m: "一度に悪人を一挙に捕らえること。", d: ["捕", "尽", "獲"] }
+                { i: "呉越同舟", m: "敵同士が同じ場所で助け合うこと。", d: ["船", "友", "海"] },
+                { i: "五里霧中", m: "様子が分からず、方針が立たないこと。", d: ["山", "雲", "空"] },
+                { i: "適材適所", m: "才能に合った役割を与えること。", d: ["人", "材", "場"] },
+                { i: "才色兼備", m: "すぐれた才能と美しい顔立ちの両方を持つこと。", d: ["美", "女", "兼"] }
             ],
             high: [
-                { i: "画竜点睛", m: "最後の大事な仕上げをすること。", d: ["精", "星", "晴"] },
-                { i: "臥薪嘗胆", m: "目的のために苦労に耐えて努力し続けること。", d: ["心", "談", "苦"] },
-                { i: "雲散霧消", m: "跡形もなく、すっかり消えてなくなること。", d: ["海", "空", "雪"] },
-                { i: "泰然自若", m: "何が起きても落ち着いていて、動じないこと。", d: ["平", "安", "静"] },
-                { i: "厚顔無恥", m: "ずうずうしくて、恥を知らないこと。", d: ["好", "知", "恥"] },
-                { i: "驚天動地", m: "世の中をひっくり返すほど驚かせること。", d: ["地", "天", "変"] },
-                { i: "乾坤一擲", m: "運命を賭けて、大勝負をすること。", d: ["拳", "地", "投"] },
-                { i: "換骨奪胎", m: "他人の作品に独自の工夫を加えて新しくすること。", d: ["体", "化", "骨"] },
-                { i: "暗中模索", m: "手がかりがない中で、あれこれ探り求めること。", d: ["闇", "中", "求"] },
-                { i: "森羅万象", m: "宇宙にあるあらゆる事象や現象のこと。", d: ["神", "羅", "天"] },
-                { i: "粉骨砕身", m: "力の限り、一生懸命に尽力すること。", d: ["死", "苦", "力"] },
-                { i: "感慨無量", m: "しみじみとした思いが計り知れないこと。", d: ["感", "想", "多"] },
-                { i: "明鏡止水", m: "邪念がなく、澄み切った心境のこと。", d: ["月", "波", "光"] },
-                { i: "一気呵成", m: "物事を一気にやり遂げること。", d: ["成", "作", "息"] },
-                { i: "竜頭蛇尾", m: "最初は勢いが良いが、終わりが振るわないこと。", d: ["竜", "蛇", "尾"] },
-                { i: "朝三暮四", m: "目先の違いにこだわり、本質が同じだと気づかない。", d: ["二", "五", "八"] },
-                { i: "温厚篤実", m: "穏やかで情が厚く、誠実な人柄のこと。", d: ["誠", "実", "信"] },
-                { i: "虚心坦懐", m: "わだかまりがなく、さっぱりした心境のこと。", d: ["心", "懐", "虚"] },
-                { i: "不撓不屈", m: "どんな困難にあっても決して心が折れないこと。", d: ["撓", "不", "屈"] },
-                { i: "夏炉冬扇", m: "季節外れで役に立たないものの例え。", d: ["炉", "扇", "冬"] },
-                { i: "威風堂々", m: "威厳があって、堂々としているさま。", d: ["風", "堂", "立"] },
-                { i: "鏡花水月", m: "目には見えるが、手に取れない幻。", d: ["月", "花", "水"] },
-                { i: "傍若無人", m: "周りを気にせず、勝手気ままに振る舞うこと。", d: ["勝", "無", "人"] },
-                { i: "和魂洋才", m: "日本の心を持ちつつ西洋の技術を取り入れること。", d: ["和", "魂", "洋"] },
-                { i: "百鬼夜行", m: "悪人たちが勝手気ままに横行すること。", d: ["夜", "行", "鬼"] },
-                { i: "呉越同舟", m: "敵同士が同じ場所で助け合うこと。", d: ["船", "友", "海"] },
+                { i: "試行錯誤", m: "失敗を繰り返しながら正解に近づくこと。", d: ["校", "策", "後"] },
+                { i: "紆余曲折", m: "事情が複雑で、物事がすんなり運ばないこと。", d: ["右", "左", "直"] },
+                { i: "臥薪嘗胆", m: "目的のために、苦労に耐えて努力し続けること。", d: ["心", "談", "苦"] },
+                { i: "切磋琢磨", m: "仲間同士で励まし合い、向上すること。", d: ["研", "究", "練"] },
                 { i: "支離滅裂", m: "筋道が立たずバラバラなこと。", d: ["壊", "乱", "滅"] },
-                { i: "紆余曲折", m: "物事が複雑に入り組んでいること。", d: ["右", "左", "直"] },
-                { i: "孤軍奮闘", m: "助けのない中で一人で懸命に戦うこと。", d: ["戦", "闘", "独"] },
-                { i: "栄枯盛衰", m: "栄えたり衰えたりすることが繰り返されること。", d: ["盛", "衰", "生"] }
+                { i: "意気揚々", m: "得意げで、元気いっぱいに振る舞うさま。", d: ["生", "道", "合"] },
+                { i: "因果応報", m: "行為に応じた報いが必ず現れること。", d: ["身", "果", "報"] },
+                { i: "疑心暗鬼", m: "疑い出すと、何でもないことまで恐ろしくなること。", d: ["信", "真", "鬼"] },
+                { i: "諸行無常", m: "この世のすべては常に変わり続けること。", d: ["定", "性", "心"] },
+                { i: "画竜点睛", m: "最後の大事な仕上げをすること。", d: ["精", "星", "晴"] },
+                { i: "本末転倒", m: "大事なこととつまらないことが逆になること。", d: ["逆", "正", "頭"] },
+                { i: "臨機応変", m: "状況の変化に応じて、適切な対応をすること。", d: ["常", "心", "対"] }
+            ],
+            hard: [
+                { i: "乾坤一擲", m: "運命を賭けて、のるかそるかの大勝負をすること。", d: ["拳", "地", "投"] },
+                { i: "泰然自若", m: "何が起きても落ち着いていて、動じないこと。", d: ["平", "安", "静"] },
+                { i: "換骨奪胎", m: "他人の作品を土台に、独自性を加えて新しくすること。", d: ["体", "化", "骨"] },
+                { i: "厚顔無恥", m: "ずうずうしくて、恥を知らないこと。", d: ["好", "知", "恥"] },
+                { i: "暗中模索", m: "手がかりがない中で、あれこれ探り求めること。", d: ["闇", "中", "求"] },
+                { i: "粉骨砕身", m: "力の限り、一生懸命に尽力すること。", d: ["死", "苦", "力"] },
+                { i: "雲散霧消", m: "霧が消えるように、跡形もなく消えること。", d: ["海", "空", "雪"] },
+                { i: "不言実行", m: "あれこれ言わずに、黙って実行すること。", d: ["有", "行", "言"] },
+                { i: "公平無私", m: "自分の感情を挟まず、誰に対しても平等なこと。", d: ["公", "正", "平"] },
+                { i: "清廉潔白", m: "心が清らかで、少しの不正もないこと。", d: ["白", "正", "直"] }
+            ],
+            legend: [
+                { i: "虚心坦懐", m: "わだかまりがなく、さっぱりした心境のこと。", d: ["心", "懐", "虚"] },
+                { i: "不撓不屈", m: "どんな困難にあっても、決して心が折れないこと。", d: ["撓", "不", "屈"] },
+                { i: "鏡花水月", m: "目には見えるが、手に取ることができない幻。", d: ["月", "花", "水"] },
+                { i: "傍若無人", m: "周りを気にせず、勝手気ままに振る舞うこと。", d: ["勝", "無", "人"] },
+                { i: "森羅万象", m: "宇宙にあるあらゆる事象や現象のこと。", d: ["神", "羅", "天"] },
+                { i: "威風堂々", m: "威厳があって、堂々としているさま。", d: ["風", "堂", "立"] },
+                { i: "抜山蓋世", m: "山を抜き去り、世を覆うほどの並外れた威力。", d: ["抜", "世", "強"] },
+                { i: "百鬼夜行", m: "悪人たちが、勝手気ままに横行すること。", d: ["夜", "行", "鬼"] },
+                { i: "夏炉冬扇", m: "季節外れで、役に立たないものの例え。", d: ["炉", "扇", "冬"] },
+                { i: "付和雷同", m: "自分の考えがなく、他人の意見にすぐ賛成すること。", d: ["同", "風", "雷"] }
             ]
-            // 他のレベル（超級、伝説）も同様に豊富なデータを保持（以下、重複を避けるため構造を維持）
         };
 
-        // 超級・伝説にも同様のボリュームを追加
-        masterIdioms.hard = masterIdioms.high; 
-        masterIdioms.legend = masterIdioms.high;
-
-        let currentLevelPool = [];
+        let currentLevel = '';
         let currentGameQuestions = [];
         let currentIdx = 0;
         let score = 0;
         let draggedCard = null;
+        let timePerQuestion = 15;
+        let currentSeconds = 0;
+        let timerId = null;
 
+        // View elements
         const startView = document.getElementById('start-view');
         const gameView = document.getElementById('game-view');
         const resultView = document.getElementById('result-view');
+        const timeSlider = document.getElementById('time-slider');
+        const timeValDisplay = document.getElementById('time-val-display');
         const checkBtn = document.getElementById('check-btn');
         const nextBtn = document.getElementById('next-btn');
         const feedback = document.getElementById('feedback');
         const dropArea = document.getElementById('drop-area');
         const sourceArea = document.getElementById('source-area');
+        const timerBar = document.getElementById('timer-bar');
+        const timerBarContainer = document.getElementById('timer-bar-container');
+
+        // Timer Slider Logic
+        timeSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (val > 60) {
+                timeValDisplay.textContent = "無制限";
+                timePerQuestion = 0;
+            } else {
+                timeValDisplay.textContent = val + "秒";
+                timePerQuestion = val;
+            }
+        });
 
         function shuffle(arr) {
             return arr.sort(() => Math.random() - 0.5);
         }
 
-        // ゲーム初期化
         function initGame(level) {
-            currentLevelPool = [...masterIdioms[level]];
-            // ランダムに5問選出
-            currentGameQuestions = shuffle(currentLevelPool).slice(0, 5);
-            
+            currentLevel = level;
+            // Get 5 random questions from pool
+            currentGameQuestions = shuffle([...masterIdioms[level]]).slice(0, 5);
             currentIdx = 0;
             score = 0;
             document.getElementById('current-score').textContent = "0";
             
             startView.classList.add('hidden');
+            resultView.classList.add('hidden');
             gameView.classList.remove('hidden');
-            document.getElementById('progress-container').classList.remove('hidden');
-            document.getElementById('level-title').textContent = "LEVEL: " + level.toUpperCase();
             
+            if (timePerQuestion > 0) {
+                timerBarContainer.classList.remove('hidden');
+            } else {
+                timerBarContainer.classList.add('hidden');
+            }
+            
+            document.getElementById('level-title').textContent = "BATTLE: " + level.toUpperCase();
             loadQuestion();
         }
 
-        // 問題の読み込み
         function loadQuestion() {
             const data = currentGameQuestions[currentIdx];
             document.getElementById('q-meaning').textContent = data.m;
             document.getElementById('q-count').textContent = `STAGE ${currentIdx + 1}/5`;
-            document.getElementById('progress-bar').style.width = `${(currentIdx / 5) * 100}%`;
             
             feedback.classList.add('hidden');
             nextBtn.classList.add('hidden');
             checkBtn.classList.remove('hidden');
             checkBtn.disabled = true;
 
-            // エリアのクリア
             sourceArea.innerHTML = '';
             Array.from(dropArea.children).forEach(zone => {
                 zone.innerHTML = '';
                 zone.className = 'drop-zone';
             });
 
-            // カードの準備
             const idiomChars = data.i.split('');
             const uniqueChars = new Set(idiomChars);
             const safeDummies = data.d.filter(c => !uniqueChars.has(c));
@@ -372,6 +393,7 @@
             });
 
             setupDragEvents();
+            startTimer();
         }
 
         function createCard(kanji, id) {
@@ -381,7 +403,6 @@
             card.draggable = true;
             card.id = `card-${id}`;
             
-            // タップ操作（スマホ・タブレット対応）
             card.onclick = () => {
                 if (checkBtn.classList.contains('hidden')) return;
                 if (card.parentElement === sourceArea) {
@@ -393,6 +414,27 @@
                 validateState();
             };
             return card;
+        }
+
+        function startTimer() {
+            if (timerId) clearInterval(timerId);
+            if (timePerQuestion === 0) return;
+
+            currentSeconds = timePerQuestion;
+            timerBar.style.width = "100%";
+            timerBar.style.transition = "none";
+            
+            timerId = setInterval(() => {
+                currentSeconds -= 0.1;
+                const percent = (currentSeconds / timePerQuestion) * 100;
+                timerBar.style.width = percent + "%";
+                timerBar.style.transition = "width 0.1s linear";
+
+                if (currentSeconds <= 0) {
+                    clearInterval(timerId);
+                    processAnswer(true); // Times up
+                }
+            }, 100);
         }
 
         function setupDragEvents() {
@@ -434,23 +476,22 @@
             checkBtn.disabled = !isFull;
         }
 
-        // 答え合わせ
-        function processAnswer() {
+        function processAnswer(isTimeUp = false) {
+            clearInterval(timerId);
             const data = currentGameQuestions[currentIdx];
             const zones = Array.from(dropArea.children);
             const userAns = zones.map(z => z.textContent).join('');
-            const isCorrect = userAns === data.i;
+            const isCorrect = !isTimeUp && (userAns === data.i);
 
             zones.forEach((z, i) => {
                 const card = z.firstChild;
                 const correctChar = data.i[i];
                 
                 if (z.textContent === correctChar) {
-                    card.classList.add('correct-card');
+                    if (card) card.classList.add('correct-card');
                 } else {
                     if (card) card.classList.add('wrong-card');
                     
-                    // 正解をガイドとして表示
                     const hint = document.createElement('div');
                     hint.className = 'answer-hint';
                     hint.textContent = `正解: ${correctChar}`;
@@ -465,7 +506,7 @@
                 feedback.textContent = "MISSION COMPLETE! ✨";
                 feedback.className = "block text-emerald-400 animate-bounce";
             } else {
-                feedback.textContent = "MISSION FAILED...";
+                feedback.textContent = isTimeUp ? "TIME UP! ⌛" : "MISSION FAILED...";
                 feedback.className = "block text-rose-500";
             }
 
@@ -484,11 +525,25 @@
         }
 
         function showFinalResult() {
+            timerBarContainer.classList.add('hidden');
             gameView.classList.add('hidden');
             resultView.classList.remove('hidden');
             document.getElementById('final-score').textContent = score;
-            document.getElementById('progress-bar').style.width = '100%';
             document.getElementById('level-title').textContent = "BATTLE FINISHED";
+        }
+
+        function resetToTitle() {
+            // UI Switch
+            resultView.classList.add('hidden');
+            gameView.classList.add('hidden');
+            startView.classList.remove('hidden');
+            
+            // Text Reset
+            document.getElementById('level-title').textContent = "タイムを競い、マスターを目指せ";
+            
+            // State Clear
+            if (timerId) clearInterval(timerId);
+            timerBarContainer.classList.add('hidden');
         }
     </script>
 </body>
